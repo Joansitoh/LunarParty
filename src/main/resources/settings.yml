@@ -1,0 +1,17 @@
+################################################
+#
+# SKILL-LUNARPARTY - v0.1
+# https://discord.gg/9N963feMZb
+#
+################################################
+
+# Enable some debug logs.
+ENABLE-DEBUG-LOG: true
+
+# Set number of maximus members on party.
+# Format: <permission>: <max_members>
+MAX-MEMBERS:
+  'default': 4 # Default max members.
+  'lunarparty.vip1': 6
+  'lunarparty.vip2': 8
+  'lunarparty.vip3': 10

@@ -1,13 +1,20 @@
 package me.joansiitoh.lunarparty;
 
-import com.lunarclient.bukkitapi.nethandler.client.LCPacketTeammates;
+import club.skilldevs.utils.ChatUtils;
+import club.skilldevs.utils.FileConfig;
+import club.skilldevs.utils.sLoader;
 import lombok.Getter;
-import me.joansiitoh.lunarparty.commands.test;
-import org.bukkit.entity.Player;
+import me.joansiitoh.lunarparty.commands.PartyCMD;
+import me.joansiitoh.lunarparty.listeners.PlayerListeners;
+import me.joansiitoh.lunarparty.party.PartyManager;
+import org.bukkit.Bukkit;
+import org.bukkit.command.CommandMap;
+import org.bukkit.command.defaults.BukkitCommand;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
 import com.lunarclient.bukkitapi.LunarClientAPI;
 
+import java.lang.reflect.Field;
 import java.util.*;
 
 /**
@@ -17,70 +24,95 @@ import java.util.*;
 @Getter
 public class sLunar extends JavaPlugin {
 
-    public static HashMap<Player, List<Player>> leaderHash = new HashMap<>();
-    public static HashMap<Player, Player> memberHash = new HashMap<>();
-
-    public static void updatePlayer(Player... list) {
-        for (Player player : list) {
-            List<Player> members = new ArrayList<>();
-            if (leaderHash.containsKey(player)) members = leaderHash.get(player);
-            else if (memberHash.containsKey(player)) {
-                Player leader = memberHash.get(player);
-                members.add(leader);
-                members.addAll(leaderHash.get(leader));
-                members.remove(player);
-            }
-
-            INSTANCE.getLunarClientAPI().sendTeammates(player,
-                    new LCPacketTeammates(player.getUniqueId(), System.currentTimeMillis(), getTeamHash(player, members))
-            );
-        }
-    }
-
-    public static Map<UUID, Map<String, Double>> getTeamHash(Player player, List<Player> targets) {
-        Map<UUID, Map<String, Double>> playerMap = new HashMap<>();
-        for (Player member : targets) {
-            Map<String, Double> posMap = new HashMap<>();
-
-            posMap.put("x", member.getLocation().getX());
-            posMap.put("y", member.getLocation().getY());
-            posMap.put("z", member.getLocation().getZ());
-
-            playerMap.put(member.getUniqueId(), posMap);
-        }
-
-        Map<String, Double> posMap = new HashMap<>();
-
-        posMap.put("x", player.getLocation().getX());
-        posMap.put("y", player.getLocation().getY());
-        posMap.put("z", player.getLocation().getZ());
-
-        playerMap.put(player.getUniqueId(), posMap);
-        return playerMap;
-    }
-
-
     ///////////////////////////////////////////////////////
 
     public static sLunar INSTANCE;
 
+    private FileConfig settingsFile;
+    private PartyManager partyManager;
     private LunarClientAPI lunarClientAPI;
 
     public void onEnable() {
         INSTANCE = this;
 
-        lunarClientAPI = new LunarClientAPI();
+        ///////////////////////////////////////////////
 
-        getCommand("test").setExecutor(new test());
+        this.settingsFile = new FileConfig(this, "settings.yml");
+        this.partyManager = new PartyManager();
+        this.lunarClientAPI = new LunarClientAPI();
+        new sLoader(this);
+
+        ///////////////////////////////////////////////
+
+        Language.load();
+
+        ///////////////////////////////////////////////
+
+        registerCommands(new PartyCMD());
+        registerListeners(new PlayerListeners());
     }
 
     public void onDisable() {
 
     }
 
-    public void registerListeners(Listener... listeners) {
-        for (Listener listener : listeners)
-            getServer().getPluginManager().registerEvents(listener, this);
+    //////////////////////////////////////////////////////////////////////////////////////////////
+
+    private void registerListeners(Listener... listeners) {
+        Arrays.stream(listeners).forEach(listener -> Bukkit.getPluginManager().registerEvents(listener, this));
+    }
+
+    private void registerCommands(BukkitCommand... commands) {
+        CommandMap commandMap;
+        try {
+            Field bukkitCommandMap = Bukkit.getServer().getClass().getDeclaredField("commandMap");
+            bukkitCommandMap.setAccessible(true);
+            commandMap = (CommandMap) bukkitCommandMap.get(Bukkit.getServer());
+        } catch (Exception e) {
+            logger("Error while register command.", "Command");
+            return;
+        }
+
+        Arrays.stream(commands).forEach(command -> {
+            commandMap.register(this.getName(), command);
+            //this.commands.add(command);
+        });
+    }
+
+   /* public void registerDatabaseConnection() {
+        DatabaseCredentials databaseCredentials;
+        ConfigCursor configCursor;
+        FileConfig databaseConfig = this.getDatabaseConfig();
+
+        switch (databaseConfig.getString("MODE".toUpperCase())) {
+            case "SQL":
+                configCursor = new ConfigCursor(databaseConfig, "SQL");
+                databaseCredentials = new DatabaseCredentials(
+                        configCursor.getString("HOST"),
+                        configCursor.getInt("PORT"),
+                        configCursor.getString("DATABASE"),
+                        configCursor.getString("TABLE"),
+                        configCursor.getString("USERNAME"),
+                        configCursor.getString("PASSWORD"));
+                databaseHandler = new SQLHandler(databaseCredentials);
+                break;
+            default:
+                logger("Please provided a valid database type.");
+                Bukkit.getScheduler().cancelTasks(this);
+                Bukkit.getPluginManager().disablePlugin(this);
+                break;
+        }
+    }*/
+
+    //////////////////////////////////////////////////////////////////////////////////////////////
+
+    public static void logger(String message) {
+        logger(message, null);
+    }
+
+    public static void logger(String message, String subMsg) {
+        if (!INSTANCE.getSettingsFile().getBoolean("ENABLE-DEBUG-LOG")) return;
+        Bukkit.getConsoleSender().sendMessage(ChatUtils.translate(Language.PREFIX.getDef() + (subMsg != null ? ("&7[&d" + subMsg + "&7] &f") : "") + message));
     }
 
 }

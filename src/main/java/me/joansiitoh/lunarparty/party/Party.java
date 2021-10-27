@@ -2,6 +2,7 @@ package me.joansiitoh.lunarparty.party;
 
 import lombok.Getter;
 import lombok.Setter;
+import me.joansiitoh.lunarparty.sLunar;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
@@ -38,7 +39,12 @@ public class Party {
     }
 
     public void disband() {
-        members.forEach(partyHash::remove);
+        List<UUID> list = new ArrayList<>(members);
+        list.forEach(this::deleteMember);
+    }
+
+    public boolean exist() {
+        return getPlayerParty(getBukkitOwner()) != null;
     }
 
     //////////////////////////////////////////////////////////////////////////////
@@ -49,7 +55,8 @@ public class Party {
 
     public List<Player> getPlayers() {
         List<Player> list = new ArrayList<>();
-        members.forEach(player -> list.add(Bukkit.getPlayer(player)));
+        members.stream().filter(player -> Bukkit.getPlayer(player) != null)
+                .forEach(player -> list.add(Bukkit.getPlayer(player)));
         return list;
     }
 
@@ -69,14 +76,14 @@ public class Party {
         refresh();
 
         try {
-            PartyManager.resetTeamMates(Bukkit.getPlayer(uuid));
+            sLunar.INSTANCE.getPartyManager().resetTeamMates(Bukkit.getPlayer(uuid));
         } catch (IOException ignored) {}
     }
 
     public void refresh() {
         members.forEach(player -> {
             try {
-                PartyManager.sendTeamMate(Bukkit.getPlayer(player), getPlayers());
+                sLunar.INSTANCE.getPartyManager().sendTeamMate(Bukkit.getPlayer(player), getPlayers());
             } catch (IOException ignored) {}
         });
     }

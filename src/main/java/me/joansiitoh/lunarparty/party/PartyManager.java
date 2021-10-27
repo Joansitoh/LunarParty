@@ -1,14 +1,20 @@
 package me.joansiitoh.lunarparty.party;
 
+import club.skilldevs.utils.ChatUtils;
+import club.skilldevs.utils.texts.FancyMessage;
+import com.lunarclient.bukkitapi.nethandler.client.LCPacketTeammates;
+import me.joansiitoh.lunarparty.Language;
+import me.joansiitoh.lunarparty.events.PartyDisbandEvent;
+import me.joansiitoh.lunarparty.events.PartyInviteEvent;
 import me.joansiitoh.lunarparty.sLunar;
+import org.apache.commons.lang.StringUtils;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
+import org.bukkit.util.StringUtil;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * Created by Joansiitoh (DragonsTeam && SkillTeam)
@@ -16,42 +22,97 @@ import java.util.UUID;
  */
 public class PartyManager {
 
-    public void invitePlayer(Party party, Player target) {
-        Player player = party.getBukkitOwner();
-        if (Party.getPlayerParty(target) != null) {
-            player.sendMessage("ya tiene party");
-            return;
-        }
+    public PartyManager() {
 
-        if (PartyInvitation.getInvitation(target, player) != null) {
-            player.sendMessage("ya le has invitado");
-            return;
-        }
-
-        new PartyInvitation(player, target);
-        player.sendMessage("has invitado jijii");
-        target.sendMessage("has sido invitado jijii");
     }
 
-    public void acceptInvitation(Player player, Player target) {
-        PartyInvitation invitation = PartyInvitation.getInvitation(player, target);
+    public void invite(Party party, Player target) {
+        Player player = party.getBukkitOwner();
+        if (Party.getPlayerParty(target) != null) {
+            player.sendMessage(Language.ALREADY_HAS_PARTY.toString(true).replace("<party_target>", target.getName()));
+            return;
+        }
+
+        if (Invitations.getInvitation(target, player) != null) {
+            player.sendMessage(Language.ALREADY_INVITED.toString(true).replace("<party_target>", target.getName()));
+            return;
+        }
+
+        ConfigurationSection section = sLunar.INSTANCE.getSettingsFile().getSection("MAX-MEMBERS");
+        int max = sLunar.INSTANCE.getSettingsFile().getInt("MAX-MEMBERS.default");
+        for (String keys : section.getKeys(false)) {
+            if (keys.equalsIgnoreCase("default")) continue;
+
+            int x = section.getInt(keys);
+            if (party.getBukkitOwner() != null) {
+                if (party.getBukkitOwner().hasPermission(keys) && x > max) max = x;
+            } else if (player.hasPermission(keys) && x > max) max = x;
+        }
+
+        if (party.getMembers().size() >= max)  {
+            player.sendMessage(Language.INVITE_MAX.toString(true));
+            return;
+        }
+
+        PartyInviteEvent event = new PartyInviteEvent(player, target, party);
+        sLunar.INSTANCE.getServer().getPluginManager().callEvent(event);
+        if (event.isCancelled()) return;
+
+        new Invitations(player, target);
+        player.sendMessage(Language.INVITE.toString(true).replace("<party_target>", target.getName()));
+
+        String prefix = "<hover>", suffix = "</hover>";
+        if (Language.INVITED.toStringList() != null) {
+            for (String s : Language.INVITED.toStringList()) {
+                String between = StringUtils.substringBetween(s, prefix, suffix);
+                if (between != null && !between.equalsIgnoreCase("")) {
+                    String[] arg = s.split(between);
+                    FancyMessage message = new FancyMessage(arg[0]
+                            .replace(prefix, "").replace("<party_target>", player.getName()));
+
+                    message.then(between).tooltip(Language.INVITED_HOVER.toString().replace("<party_target>", player.getName()));
+                    message.command("/party accept " + player.getName());
+
+                    message.then(arg[1].replace(suffix, "").replace("<party_target>", player.getName()));
+                    message.send(target);
+                    continue;
+                }
+
+                target.sendMessage(ChatUtils.translate(s.replace("<party_target>", player.getName())));
+            }
+            return;
+        }
+        target.sendMessage(Language.INVITED.toString(true).replace("<party_target>", player.getName()));
+    }
+
+    public void accept(Player player, Player target) {
+        Invitations invitation = Invitations.getInvitation(player, target);
+        Party party = Party.getPlayerParty(target);
+        if (party.getMembers().size() >= 10) {
+            return;
+        }
+
         if (invitation != null) {
-            Party party = Party.getPlayerParty(target);
-            if (party == null) {
-                player.sendMessage("el jugador " + target.getName() + " ya no tiene party.");
+            if (!party.exist()) {
+                player.sendMessage(Language.NOT_IN_PARTY.toString(true).replace("<party_target>", target.getName()));
                 return;
             }
 
             invitation.remove();
             party.addMember(player.getUniqueId());
-            player.sendMessage("yujuuuu, acpetado");
+            player.sendMessage(Language.ACCEPT.toString(true).replace("<party_target>", target.getName()));
+            target.sendMessage(Language.ACCEPTED.toString(true).replace("<party_target>", player.getName()));
             return;
         }
 
-        player.sendMessage("ese jugador no te ha invitado");
+        player.sendMessage(Language.NOT_INVITED.toString(true).replace("<party_target>", target.getName()));
     }
 
-    public static void sendTeamMate(Player player, List<Player> targets) throws IOException {
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    public void sendTeamMate(Player player, List<Player> targets) throws IOException {
+        if (player == null) return;
+
         ByteArrayOutputStream os = new ByteArrayOutputStream();
 
         os.write(13);
@@ -64,6 +125,7 @@ public class PartyManager {
 
 
         for (Player member : targets) {
+            if (member == null) continue;
             Map<String, Double> posMap = new HashMap<>();
 
             posMap.put("x", member.getLocation().getX());
@@ -81,34 +143,12 @@ public class PartyManager {
 
         playerMap.put(player.getUniqueId(), posMap);
 
-        os.write(BufferUtils.writeVarInt(playerMap.size()));
-
-        for (Map.Entry<UUID, Map<String, Double>> entry : playerMap.entrySet()) {
-            os.write(BufferUtils.getBytesFromUUID(entry.getKey()));
-            os.write(BufferUtils.writeVarInt(entry.getValue().size()));
-            for (Map.Entry<String, Double> posEntry : entry.getValue().entrySet()) {
-                os.write(BufferUtils.writeString(posEntry.getKey()));
-                os.write(BufferUtils.writeDouble(posEntry.getValue()));
-            }
-        }
-
-        os.close();
-
-        player.sendPluginMessage(sLunar.INSTANCE, "Lunar-Client", os.toByteArray());
+        sLunar.INSTANCE.getLunarClientAPI().sendTeammates(player, new LCPacketTeammates(player.getUniqueId(), 1, playerMap));
     }
 
-    public static void resetTeamMates(Player player) throws IOException {
-        ByteArrayOutputStream os = new ByteArrayOutputStream();
-
-        os.write(13);
-
-        os.write(BufferUtils.writeBoolean(false));
-        os.write(BufferUtils.writeLong(10L));
-        os.write(BufferUtils.writeVarInt(0));
-
-        os.close();
-
-        player.sendPluginMessage(sLunar.INSTANCE, "Lunar-Client", os.toByteArray());
+    public void resetTeamMates(Player player) throws IOException {
+        if (player == null) return;
+        sLunar.INSTANCE.getLunarClientAPI().sendTeammates(player, new LCPacketTeammates(null, 10L, new HashMap<>()));
     }
 
 }
