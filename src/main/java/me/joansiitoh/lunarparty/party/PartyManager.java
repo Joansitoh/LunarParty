@@ -1,6 +1,7 @@
 package me.joansiitoh.lunarparty.party;
 
 import club.skilldevs.utils.ChatUtils;
+import club.skilldevs.utils.FileConfig;
 import club.skilldevs.utils.texts.FancyMessage;
 import com.lunarclient.bukkitapi.nethandler.client.LCPacketTeammates;
 import me.joansiitoh.lunarparty.Language;
@@ -8,6 +9,7 @@ import me.joansiitoh.lunarparty.events.PartyDisbandEvent;
 import me.joansiitoh.lunarparty.events.PartyInviteEvent;
 import me.joansiitoh.lunarparty.sLunar;
 import org.apache.commons.lang.StringUtils;
+import org.bukkit.ChatColor;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.util.StringUtil;
@@ -22,8 +24,23 @@ import java.util.*;
  */
 public class PartyManager {
 
-    public PartyManager() {
+    private final List<UUID> chatters;
 
+    public PartyManager() {
+        this.chatters = new ArrayList<>();
+    }
+
+    public boolean isChatting(Player player) {
+        return chatters.contains(player.getUniqueId());
+    }
+
+    public void toggleChat(Player player) {
+        if (!chatters.contains(player.getUniqueId()))
+            chatters.add(player.getUniqueId());
+        else chatters.remove(player.getUniqueId());
+
+        player.sendMessage(Language.CHAT_TOGGLED.toString(true).replace("<party_value>",
+                chatters.contains(player.getUniqueId()) ? ChatColor.GREEN + "ON" : ChatColor.RED + "OFF"));
     }
 
     public void invite(Party party, Player target) {
@@ -39,14 +56,15 @@ public class PartyManager {
         }
 
         ConfigurationSection section = sLunar.INSTANCE.getSettingsFile().getSection("MAX-MEMBERS");
-        int max = sLunar.INSTANCE.getSettingsFile().getInt("MAX-MEMBERS.default");
+        int max = sLunar.INSTANCE.getSettingsFile().getInt("MAX-MEMBERS.DEFAULT");
         for (String keys : section.getKeys(false)) {
-            if (keys.equalsIgnoreCase("default")) continue;
+            if (keys.equalsIgnoreCase("DEFAULT")) continue;
 
-            int x = section.getInt(keys);
+            String perm = section.getString(keys + ".PERMISSION");
+            int x = section.getInt(keys + ".MAX");
             if (party.getBukkitOwner() != null) {
-                if (party.getBukkitOwner().hasPermission(keys) && x > max) max = x;
-            } else if (player.hasPermission(keys) && x > max) max = x;
+                if (party.getBukkitOwner().hasPermission(perm) && x > max) max = x;
+            } else if (player.hasPermission(perm) && x > max) max = x;
         }
 
         if (party.getMembers().size() >= max)  {

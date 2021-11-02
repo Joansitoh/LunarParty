@@ -28,11 +28,13 @@ public class PartyCMD extends BukkitCommand {
         arguments.add(new CreateArgument());
         arguments.add(new DisbandArgument());
         arguments.add(new LeaveArgument());
+        arguments.add(new ChatArgument());
         arguments.add(new AcceptArgument());
         arguments.add(new InviteArgument());
         arguments.add(new KickArgument());
         arguments.add(new PromoteArgument());
         arguments.add(new ListArgument());
+        arguments.add(new ReloadArgument());
 
         int page = 1;
         for (int x = 0; x < arguments.size(); x++) {

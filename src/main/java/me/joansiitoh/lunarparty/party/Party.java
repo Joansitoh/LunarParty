@@ -25,6 +25,10 @@ public class Party {
         return partyHash.get(player.getUniqueId());
     }
 
+    public static Party getPlayerParty(UUID uuid) {
+        return partyHash.get(uuid);
+    }
+
     /////////////////////////////////////////////////
 
     private final UUID owner;

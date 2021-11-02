@@ -4,4 +4,4 @@ author: ${author}
 main: ${mainClass}
 api-version: 1.13
 
-description: Plugin created for SkillWars Network by Joansiitoh and others.
+description: Plugin for make teams with lunarclient Team View mod.

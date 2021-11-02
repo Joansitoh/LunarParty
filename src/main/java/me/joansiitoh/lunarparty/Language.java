@@ -48,6 +48,8 @@ public enum Language {
     ACCEPT("ACCEPT", "PARTY.DEFAULT", "&fYou have been &aaccept &fthe party invitation."),
     ACCEPTED("ACCEPTED", "PARTY.DEFAULT", "&a<party_target> &fhas &aaccept &fthe party invitation."),
 
+    CHAT_TOGGLED("CHAT-TOGGLED", "PARTY.DEFAULT", "&fParty chat has been toggled &a<party_value>&f."),
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     PLAYER_NOT_IN_PARTY("PLAYER-NOT-IN-PARTY", "PARTY.ERRORS", "&c<party_target> &fis &cnot &fin a party."),

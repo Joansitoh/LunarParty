@@ -8,10 +8,24 @@
 # Enable some debug logs.
 ENABLE-DEBUG-LOG: true
 
+# If this option is 'true' when all players in party disconnect
+# the party is eliminated.
+DELETE-WHEN-ALL-OFFLINE: true
+
+# SYMBOL TO SPEAK IN PARTY CHAT
+PARTY-CHAT-FORMAT: '&5[Party] &f<party_player>&f: &7<party_message>'
+PARTY-CHAT-SYMBOL: '%'
+
 # Set number of maximus members on party.
 # Format: <permission>: <max_members>
 MAX-MEMBERS:
-  'default': 4 # Default max members.
-  'lunarparty.vip1': 6
-  'lunarparty.vip2': 8
-  'lunarparty.vip3': 10
+  DEFAULT: 4
+  VIP1:
+    PERMISSION: "lunarparty.vip1"
+    MAX: 6
+  VIP2:
+    PERMISSION: "lunarparty.vip2"
+    MAX: 8
+  VIP3:
+    PERMISSION: "lunarparty.vip3"
+    MAX: 10

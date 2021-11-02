@@ -3,6 +3,7 @@ package me.joansiitoh.lunarparty;
 import club.skilldevs.utils.ChatUtils;
 import club.skilldevs.utils.FileConfig;
 import club.skilldevs.utils.sLoader;
+import de.jeff_media.updatechecker.UpdateChecker;
 import lombok.Getter;
 import me.joansiitoh.lunarparty.commands.PartyCMD;
 import me.joansiitoh.lunarparty.listeners.PlayerListeners;
@@ -32,6 +33,8 @@ public class sLunar extends JavaPlugin {
     private PartyManager partyManager;
     private LunarClientAPI lunarClientAPI;
 
+    private UpdateChecker updateChecker;
+
     public void onEnable() {
         INSTANCE = this;
 
@@ -44,6 +47,7 @@ public class sLunar extends JavaPlugin {
 
         ///////////////////////////////////////////////
 
+        updateChecker = UpdateChecker.init(this, 97182).checkEveryXHours(24).checkNow();
         Language.load();
 
         ///////////////////////////////////////////////

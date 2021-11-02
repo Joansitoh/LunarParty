@@ -8,18 +8,21 @@ import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 
+import java.util.UUID;
+
 @Getter
 @Setter
 public final class PartyKickEvent extends Event implements Cancellable {
 
     private static final HandlerList list = new HandlerList();
 
-    private final Player player, target;
+    private final Player player;
+    private final UUID target;
     private final Party party;
 
     private boolean cancelled;
 
-    public PartyKickEvent(Player player, Player target, Party party) {
+    public PartyKickEvent(Player player, UUID target, Party party) {
         this.player = player;
         this.target = target;
         this.party = party;
